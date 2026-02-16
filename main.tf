@@ -1,31 +1,9 @@
-terraform {
-    required_providers {
-        aws = {
-            source = "hashicorp/aws"
-            version = "~> 6.0"
-        }
-        tailscale = {
-            source = "tailscale/tailscale"
-            version = "0.27.0"
-        }
-    }
-}
 
 
-#-----------------------Modules-----------------------
 
-module "tailscale_cloud_init_AWS_Ubuntu" {
-  source  = "tailscale/tailscale/cloudinit"
-  version = "0.0.11"
-  auth_key = resource.tailscale_tailnet_key.tailnet_key.key
-  advertise_routes = [data.aws_subnet.selected.cidr_block]
-  enable_ssh = true
-  hostname = local.final_hostname
-  # lost many hairs to the fact that ubuntu does like to let you set the hostname this way, so switched to AWS Linux... 
-  # Configuration options https://registry.terraform.io/modules/tailscale/cloudinit/tailscale/latest/docs
-}
-
-#-----------------------Data and Locals-----------------------
+####################################################################
+# -------------------------Data and Locals-------------------------#
+####################################################################
 
 # Get the default VPC Reference from https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc
 data "aws_vpc" "default" {
@@ -58,9 +36,11 @@ locals {
   final_hostname = random_pet.server_name_a.id
 }
 
-####################################################################
-# ----------------------------Resources----------------------------#
-####################################################################
+######################################################################################################
+######################################################################################################
+# -----------------------------------------------Resources-------------------------------------------#
+######################################################################################################
+######################################################################################################
 
 ####################################################################
 # -----------------------Auth Key Generation-----------------------#
