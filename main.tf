@@ -11,18 +11,7 @@ terraform {
     }
 }
 
-#-----------------------Providers-----------------------
 
-provider "aws" {
-    region = "ca-central-1"
-  
-}
-
-provider "tailscale" {
-  # Configuration options https://registry.terraform.io/providers/tailscale/tailscale/latest/docs
-  api_key              = var.my_api_key
-  tailnet              = var.tailnet_name
-}
 #-----------------------Modules-----------------------
 
 module "tailscale_cloud_init_AWS_Ubuntu" {
@@ -69,16 +58,64 @@ locals {
   final_hostname = random_pet.server_name_a.id
 }
 
-#-----------------------Resources-----------------------
+####################################################################
+# ----------------------------Resources----------------------------#
+####################################################################
 
-# example from https://registry.terraform.io/providers/tailscale/tailscale/latest/docs/resources/device_subnet_routes
-resource "tailscale_device_subnet_routes" "sample_routes" {
-  # Prefer the new, stable `node_id` attribute; the legacy `.id` field still works.
-  device_id = data.tailscale_device.subnet-router-a.node_id
-  routes = [
-    data.aws_subnet.selected.cidr_block
-  ]
+####################################################################
+# -----------------------Auth Key Generation-----------------------#
+####################################################################
+#instead of hard coding the auth key in the UI, we can generate it with terraform and pass it to the cloud init module
+resource "tailscale_tailnet_key" "tailnet_key" {
+  reusable      = true
+  ephemeral     = true
+  preauthorized = true
+  expiry        = 3600
+  description   = "Ephemeral key for Terraform provisioning"
 }
+
+
+####################################################################
+# ----------------------AWS Requirements Prep----------------------#
+####################################################################
+#generate a random name for the subnet router instance
+resource "random_pet" "server_name_a" {
+  prefix = "subnet-router"
+  length = 2
+}
+
+
+# Create the Security Group for web server
+resource "aws_security_group" "web_server_sg" {
+  name        = "web-server-sg"
+  description = "Allow HTTP from internal subnet router"
+  vpc_id      = data.aws_vpc.default.id
+
+  # INBOUND RULE (Ingress)
+  ingress {
+    description = "HTTP from Subnet Router"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    
+    # allow local LAN traffic
+    cidr_blocks = [data.aws_subnet.selected.cidr_block] 
+  }
+
+  # OUTBOUND RULE 
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+
+####################################################################
+# -----------------------Create AWS machines-----------------------#
+####################################################################
+
 
 #create the subnet router machine in AWS with the cloud init file to connect to tailscale and advertise the subnet route
 resource "aws_instance" "tailscale-subnet-router" {
@@ -118,59 +155,16 @@ resource "aws_instance" "aws-webserver" {
   
 }
 
-#generate a random name for the subnet router instance
-resource "random_pet" "server_name_a" {
-  prefix = "subnet-router"
-  length = 2
-}
+####################################################################
+# --------------------Approve the subnet router--------------------#
+####################################################################
 
 
-# Create the Security Group for web server
-resource "aws_security_group" "web_server_sg" {
-  name        = "web-server-sg"
-  description = "Allow HTTP from internal subnet router"
-  vpc_id      = data.aws_vpc.default.id
-
-  # INBOUND RULE (Ingress)
-  ingress {
-    description = "HTTP from Subnet Router"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    
-    # allow local LAN traffic
-    cidr_blocks = [data.aws_subnet.selected.cidr_block] 
-  }
-
-  # OUTBOUND RULE 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-#instead of hard coding the auth key in the UI, we can generate it with terraform and pass it to the cloud init module
-resource "tailscale_tailnet_key" "tailnet_key" {
-  reusable      = true
-  ephemeral     = true
-  preauthorized = true
-  expiry        = 3600
-  description   = "Ephemeral key for Terraform provisioning"
-}
-
-
-# generate the auth token with the API rather than doing it in the UI
-
-
-# ------------------Generate instructions for the user to connect to the web server------------------
-
-output "final_instructions" {
-  value = <<-EOF
-    To connect to the web server:
-    1. Ensure you are connected to the Tailscale network.
-    2. Visit the web server at: http://${aws_instance.aws-webserver.private_ip}:80
-    You should see a page that says "Hello from the web server!"
-  EOF
+# example from https://registry.terraform.io/providers/tailscale/tailscale/latest/docs/resources/device_subnet_routes
+resource "tailscale_device_subnet_routes" "sample_routes" {
+  # approves the route so that traffic can flow without user intervension.
+  device_id = data.tailscale_device.subnet-router-a.node_id
+  routes = [
+    data.aws_subnet.selected.cidr_block
+  ]
 }
