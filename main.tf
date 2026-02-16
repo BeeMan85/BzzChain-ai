@@ -28,11 +28,11 @@ provider "tailscale" {
 module "tailscale_cloud_init_AWS_Ubuntu" {
   source  = "tailscale/tailscale/cloudinit"
   version = "0.0.11"
-  auth_key = var.tailscale_auth_key
+  auth_key = resource.tailscale_tailnet_key.tailnet_key.key
   advertise_routes = [data.aws_subnet.selected.cidr_block]
   enable_ssh = true
   hostname = local.final_hostname
-  # lost many hairs to the fact that ubuntu does like to let you set the hostname this way... 
+  # lost many hairs to the fact that ubuntu does like to let you set the hostname this way, so switched to AWS Linux... 
   # Configuration options https://registry.terraform.io/modules/tailscale/cloudinit/tailscale/latest/docs
 }
 
@@ -151,5 +151,26 @@ resource "aws_security_group" "web_server_sg" {
   }
 }
 
-# to do next: how to approve the subnet route from terraform? https://tailscale.com/kb/1111/terraform/#approve-subnet-routes
+#instead of hard coding the auth key in the UI, we can generate it with terraform and pass it to the cloud init module
+resource "tailscale_tailnet_key" "tailnet_key" {
+  reusable      = true
+  ephemeral     = true
+  preauthorized = true
+  expiry        = 3600
+  description   = "Ephemeral key for Terraform provisioning"
+}
+
+
 # generate the auth token with the API rather than doing it in the UI
+
+
+# ------------------Generate instructions for the user to connect to the web server------------------
+
+output "final_instructions" {
+  value = <<-EOF
+    To connect to the web server:
+    1. Ensure you are connected to the Tailscale network.
+    2. Visit the web server at: http://${aws_instance.aws-webserver.private_ip}:80
+    You should see a page that says "Hello from the web server!"
+  EOF
+}
