@@ -20,8 +20,7 @@ provider "aws" {
 
 provider "tailscale" {
   # Configuration options https://registry.terraform.io/providers/tailscale/tailscale/latest/docs
-  oauth_client_id      = var.my_client_id
-  oauth_client_secret  = var.my_client_secret
+  api_key              = var.my_api_key
   tailnet              = var.tailnet_name
 }
 #-----------------------Modules-----------------------
@@ -31,10 +30,13 @@ module "tailscale_cloud_init_AWS_Ubuntu" {
   version = "0.0.11"
   auth_key = var.tailscale_auth_key
   advertise_routes = [data.aws_subnet.selected.cidr_block]
+  enable_ssh = true
+  hostname = local.final_hostname
+  # lost many hairs to the fact that ubuntu does like to let you set the hostname this way... 
   # Configuration options https://registry.terraform.io/modules/tailscale/cloudinit/tailscale/latest/docs
 }
 
-#-----------------------Data-----------------------
+#-----------------------Data and Locals-----------------------
 
 # Get the default VPC Reference from https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc
 data "aws_vpc" "default" {
@@ -54,17 +56,100 @@ data "aws_subnet" "selected" {
   id = data.aws_subnets.default.ids[0]
 }
 
+# Get the device ID of the Tailscale subnet router for the subnet routes resource from https://registry.terraform.io/providers/tailscale/tailscale/latest/docs/data-sources/device
+data "tailscale_device" "subnet-router-a" {
+ hostname = local.final_hostname
+ wait_for = "120s"
+#  make sure these run in the correct order so the device is created before we try to get the device ID for the subnet routes resource
+ depends_on = [aws_instance.tailscale-subnet-router]
+}
+
+locals {
+  # Set the hostname
+  final_hostname = random_pet.server_name_a.id
+}
+
 #-----------------------Resources-----------------------
 
+# example from https://registry.terraform.io/providers/tailscale/tailscale/latest/docs/resources/device_subnet_routes
+resource "tailscale_device_subnet_routes" "sample_routes" {
+  # Prefer the new, stable `node_id` attribute; the legacy `.id` field still works.
+  device_id = data.tailscale_device.subnet-router-a.node_id
+  routes = [
+    data.aws_subnet.selected.cidr_block
+  ]
+}
+
+#create the subnet router machine in AWS with the cloud init file to connect to tailscale and advertise the subnet route
 resource "aws_instance" "tailscale-subnet-router" {
-    ami = "ami-0631168b8ae6e1731" # Ubuntu Server 22.04 LTS // ca-central-1
+    ami = "ami-09547c8673abb0190" # Amazon Linux // ca-central-1
     instance_type = "t3.micro"
+    tags = {
+  Name = "tailscale-subnet-router-${local.final_hostname}" 
+}
     # See https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnets
     subnet_id = data.aws_subnets.default.ids[0]
     # cloud init file found in https://www.youtube.com/watch?v=PEoMmZOj6Cg&list=PLbKN2w7aG8EIbpIcZ2iGGsFTIZ-zMqLOn&t=10s
-    user_data = module.tailscale_cloud_init_AWS_Ubuntu.rendered
+    user_data_base64 = module.tailscale_cloud_init_AWS_Ubuntu.rendered
   
 }
 
+#create the webserver to serve the test page
+resource "aws_instance" "aws-webserver" {
+    ami = "ami-09547c8673abb0190" # Amazon Linux // ca-central-1
+    instance_type = "t3.micro"
+    tags = {
+  Name = "aws-webserver-${local.final_hostname}" 
+}
+    # See https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnets
+    subnet_id = data.aws_subnets.default.ids[0]
+    # attach firewall rule
+    vpc_security_group_ids = [aws_security_group.web_server_sg.id]
+    # install a web server and create a simple site https://medium.com/@aravind-cloud/launch-an-ec2-instance-and-host-a-web-page-86a5b00e903c
+    user_data = <<-EOF
+                #!/bin/bash
+                sudo yum update -y
+                sudo yum install -y httpd
+                sudo systemctl start httpd
+                sudo systemctl enable httpd
+                echo "Hello from the web server!" > /var/www/html/index.html
+                EOF
+   
+  
+}
+
+#generate a random name for the subnet router instance
+resource "random_pet" "server_name_a" {
+  prefix = "subnet-router"
+  length = 2
+}
+
+
+# Create the Security Group for web server
+resource "aws_security_group" "web_server_sg" {
+  name        = "web-server-sg"
+  description = "Allow HTTP from internal subnet router"
+  vpc_id      = data.aws_vpc.default.id
+
+  # INBOUND RULE (Ingress)
+  ingress {
+    description = "HTTP from Subnet Router"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    
+    # allow local LAN traffic
+    cidr_blocks = [data.aws_subnet.selected.cidr_block] 
+  }
+
+  # OUTBOUND RULE 
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 # to do next: how to approve the subnet route from terraform? https://tailscale.com/kb/1111/terraform/#approve-subnet-routes
-# add the tailscale cloud init terraform module
+# generate the auth token with the API rather than doing it in the UI

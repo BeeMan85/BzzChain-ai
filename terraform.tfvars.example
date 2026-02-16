@@ -6,6 +6,5 @@
 # tailscale_auth_key  = "AUTHKEY"
 
 # Enter your tailscale client id, client secret and tailnet name for the provider configuration for Tailscale API access.
-#my_client_id        = "CLIENTID"
-#my_client_secret    = "CLIENTSECRET"
-#tailnet_name        = "TAILNETNAME"
+#my_api_key        = "APIKEY"
+#tailnet_name      = "TAILNETNAME"
