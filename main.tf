@@ -123,14 +123,7 @@ resource "aws_instance" "aws-webserver" {
     # attach firewall rule
     vpc_security_group_ids = [aws_security_group.web_server_sg.id]
     # install a web server and create a simple site https://medium.com/@aravind-cloud/launch-an-ec2-instance-and-host-a-web-page-86a5b00e903c
-    user_data = <<-EOF
-                #!/bin/bash
-                sudo yum update -y
-                sudo yum install -y httpd
-                sudo systemctl start httpd
-                sudo systemctl enable httpd
-                echo "Hello from the web server!" > /var/www/html/index.html
-                EOF
+    user_data = file("${path.module}/scripts/install_webserver.sh")
    
   
 }

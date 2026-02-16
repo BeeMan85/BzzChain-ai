@@ -2,9 +2,6 @@
 # AWS authentication is via AWS Named Profiles, so ensure you have the AWS CLI installed and configured with your credentials. https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
 # you can also see instructions for AWS credentials here https://youtu.be/7xngnjfIlK4?si=GDdlzeOV2OwShRrb&t=1284
 
-# Enter your tailscale auth key used to connect machines to the tailnet
-# tailscale_auth_key  = "AUTHKEY"
-
-# Enter your tailscale client id, client secret and tailnet name for the provider configuration for Tailscale API access.
+# Enter your tailscale api key and tailnet name for the provider configuration for Tailscale API access.
 #my_api_key        = "APIKEY"
 #tailnet_name      = "TAILNETNAME"
