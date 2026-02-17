@@ -46,6 +46,8 @@ Navigate into the directory in your CLI and run:
 ## Verification
 
 [Step-by-step instructions on how to prove it worked. Example: "Ping this IP," "Visit this URL," or "Check your Tailscale admin console"]
+<img width="426" height="70" alt="post run instructions" src="https://github.com/user-attachments/assets/486f9509-96f3-43f7-b03b-558d5bb7898c" />
+
 
 ## How It Works
 
