@@ -5,6 +5,8 @@
 ## Architecture
 
 [Insert a screenshot or a Mermaid diagram here. Visually show how the user connects to the resources.]
+![Tailnet and AWS diagram](https://github.com/user-attachments/assets/8002894f-395b-4b16-b9c2-c6fab339cdc2)
+
 
 ## Prerequisites
 
