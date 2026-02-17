@@ -10,19 +10,38 @@
 
 ## Prerequisites
 
-[List the tools the user needs installed before they start. Example: Terraform, AWS CLI, Tailscale Account.]
-- [ ] AWS VPC running in Canada (Central) [ca-central-1]
+### Services
+- [ ] API access to AWS VPC running in Canada (Central) [ca-central-1] with permissions to:
+    - [ ] Create ec2 instances
+    - [ ] Create security groups
+- [ ] Tailnet running in tailscale with API access    
+
+### Software
+- [ ] Terraform
+- [ ] AWS CLI
+- [ ] Tailscale client installed and running on local machine
+
+### Information or pre-completed steps
+- [ ] Have created a Tailscale API key with proper permissions, and have the key on hand.
+- [ ] Have the exact name of your Tailnet
+- [ ] Have run `aws configure` [as shown in this blog post](https://medium.com/@shanmorton/set-up-terraform-tf-and-aws-cli-build-a-simple-ec2-1643bcfcb6fe) to create the AWS Shared Credentials file in your home directory.
+
 
 ## Quick Start
 
-### 1. Clone the repository
-[Command to clone the repo]
+### 1. Clone or download repository
+Either clone or download repo to a location that Terraform has access to.
 
-### 2. Configure secrets
-[Explain how to set up the `terraform.tfvars` file, specifically for the Tailscale Auth Key]
+### 2. Configure access and secrets
+Create a copy of the file `terraform.tfvars.example` and rename to `terraforn.tfvars`. Edit the file to uncomment your tailscale API key and tailnet name, optionally you can skip this step and Terraform will ask you for those variables on each run.
 
 ### 3. Deploy
-[The commands to initialize and apply the Terraform code: `terraform init` and `terraform apply`]
+Navigate into the directory in your CLI and run:
+- `terraform init` - Prepare the files and directories terraform needs, as well as install the required plugins.
+- `terraform plan` - Ccheck code for errors, plan the order of operations etc.
+- `terraform apply` - Trigger the creation of resources etc, this is when terraform will "make the things".
+- `terraform destroy` - Remove all the resources and configurations that terraform performed in apply.
+
 
 ## Verification
 
