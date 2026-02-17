@@ -1,4 +1,4 @@
-# [Project Name]
+# [BzzChain.ai - POC of Tailscale subnet routing via Terraform]
 
 This project showcases the elegance and simplicity of Tailscale, allowing access to remote resources (in this case running in AWS) without cumberson site-to-site VPNs, or insecure firewall rules. It allows you to see how Tailscale securely allows access to devices and services even if they are not able to be joined to the tailnet.
 
