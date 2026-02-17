@@ -11,6 +11,7 @@
 ## Prerequisites
 
 [List the tools the user needs installed before they start. Example: Terraform, AWS CLI, Tailscale Account.]
+- [ ] AWS VPC running in Canada (Central) [ca-central-1]
 
 ## Quick Start
 
