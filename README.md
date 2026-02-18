@@ -47,6 +47,7 @@ Navigate into the directory in your CLI and run:
 
 At the end of the `terraform apply` command running in your CLI it will output the url of the webserver to access to test connectivity, open that url in your browser and you should see Hello World text.
 Example:
+
 <img width="426" height="70" alt="post run instructions" src="https://github.com/user-attachments/assets/486f9509-96f3-43f7-b03b-558d5bb7898c" />
 
 
