@@ -62,7 +62,7 @@ The deployment follows a chain of dependencies where each piece of information i
         > I am generating random server names because there can be a delay in removing destroyed registered machines from Tailscale even when they are marked as ephemeral. The name must also be known so that we can find it in tailscale in a later step.
     * A **Tailscale Auth Key** is generated on-the-fly, which acts as a temporary one-time password for the new machine to join your network.
         > I created the auth key programmatically to save additional manual steps and requirements, it also allows the terraform to not run into expired keys since they have a maximum life of 90 days. 
-    * An **AWS Security Group** is created that is "locked down"—it only allows incoming traffic on port 80 if that traffic originates from within the local AWS subnet CIDR discovered in step 1.
+    * An **AWS Security Group** is created that only allows incoming traffic on port 80 if that traffic originates from within the local AWS subnet CIDR discovered in step 1.
 3. **Cloud-Init Synthesis**: The `tailscale_cloud_init` module takes the **Auth Key** to attach to the tailnet, the **Random Hostname** to set the machine hostname so it is known to find the device in Tailscale later, and the **AWS Subnet CIDR** to advertise that subnet and bundles them into a specialized boot script to install and join the tailnet. It also enabled Tailscale SSH for secure remote access.
     > This Tailscale module is a no-brainer, it makes creating the cloud-init scripts incredibly clean and straight forward.
 4. **Instance Provisioning**: 
