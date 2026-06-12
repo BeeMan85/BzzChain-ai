@@ -22,7 +22,8 @@ The third plays the role of a machine theoretically inside a different cloud pro
 
 Lastly of course is the users local machine running tailscale, this machine is used to test connectivity and explore how the tailnet is configured and secured.
 
-![Tailnet and AWS diagram](https://github.com/user-attachments/assets/8002894f-395b-4b16-b9c2-c6fab339cdc2)
+<img width="1178" height="677" alt="Tailscale Demo Diagram" src="https://github.com/user-attachments/assets/884e8c4c-8123-4a46-883a-4ccc853f0b2a" />
+
 
 
 # Warning using this demo may overwrite data and policies in your Tailnet, only run in a test environment!
