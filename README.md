@@ -8,6 +8,8 @@ This project creates two instances in the same AWS VPC subnet, the first acts as
 ![Tailnet and AWS diagram](https://github.com/user-attachments/assets/8002894f-395b-4b16-b9c2-c6fab339cdc2)
 
 
+# Warning using this demo may overwrite data in your Tailnet, only run in a test environment!
+
 ## Prerequisites
 
 ### Services
