@@ -23,18 +23,27 @@ data "aws_subnet" "selected" {
   id = data.aws_subnets.default.ids[0]
 }
 
-# Get the device ID of the Tailscale subnet router for the subnet routes resource from https://registry.terraform.io/providers/tailscale/tailscale/latest/docs/data-sources/device
+# Get the device ID and IP of the Tailscale subnet router for the subnet routes resource from https://registry.terraform.io/providers/tailscale/tailscale/latest/docs/data-sources/device
 data "tailscale_device" "subnet-router-a" {
- hostname = "tailscale-subnet-router-${local.final_hostname}"
+ hostname = "aws-subnet-router-${local.final_hostname}"
  wait_for = "120s"
 #  make sure these run in the correct order so the device is created before we try to get the device ID for the subnet routes resource
  depends_on = [aws_instance.tailscale-subnet-router]
+}
+
+# Get the IP of the gcp database for testing from https://registry.terraform.io/providers/tailscale/tailscale/latest/docs/data-sources/device
+data "tailscale_device" "gcp-database-a" {
+ hostname = "gcp-database-${local.final_hostname}"
+ wait_for = "120s"
+#  make sure these run in the correct order so the device is created before we try to get the device ID for the subnet routes resource
+ depends_on = [aws_instance.tailscale-gcp-database]
 }
 
 locals {
   # Set the hostname
   final_hostname = random_pet.server_name_a.id
 }
+
 
 ######################################################################################################
 ######################################################################################################
@@ -85,12 +94,18 @@ resource "tailscale_acl" "main_acl" {
   acl = jsonencode({
     // Define users and devices that can use Tailscale SSH.
 	"ssh": [
-		// Allow all users to SSH into their own devices in check mode.
-		// Comment this section out if you want to define specific restrictions.
+		// Allow all user to SSH into aws tagged machines in check mode.
 		{
 			"action": "check",
 			"src":    ["autogroup:member"],
-			"dst":    ["autogroup:self"],
+			"dst":    ["tag:aws"],
+			"users":  ["autogroup:nonroot", "root"],
+		},
+    //allow aws tagged machines to SSH into gcp tagged machines without check mode.
+    {
+			"action": "accept",
+			"src":    ["tag:aws"],
+			"dst":    ["tag:gcp"],
 			"users":  ["autogroup:nonroot", "root"],
 		},
 	],
@@ -112,9 +127,14 @@ resource "tailscale_acl" "main_acl" {
 			"src": ["tag:aws"],
 			"dst": ["tag:gcp"],
 			"ip":  ["*"],
+		},
+    {
+			"src": ["autogroup:admin"],
+			"dst": ["tag:aws"],
+			"ip":  ["*"],
 		}
 ],
-    //Grant access dynamically using AWS subnet data source
+    //Grant access to user dynamically using AWS subnet data source to the subnet
     "acls": [
       {
         "action": "accept",
@@ -122,7 +142,7 @@ resource "tailscale_acl" "main_acl" {
         // Inject the dynamic CIDR block here
         "dst":    ["${data.aws_subnet.selected.cidr_block}:*"] 
       }
-    ]
+    ],
   })
 }
 
@@ -201,7 +221,7 @@ resource "aws_instance" "aws-webserver" {
 
 # ----------------- "Demo GCP region" ------------------- #
 
-#create the subnet router machine in AWS with the cloud init file to connect to tailscale
+#create the GCP database machine in AWS with the cloud init file to connect to tailscale
 resource "aws_instance" "tailscale-gcp-database" {
     ami = "ami-09547c8673abb0190" # Amazon Linux // ca-central-1
     instance_type = "t3.micro"
