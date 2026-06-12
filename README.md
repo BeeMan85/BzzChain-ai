@@ -4,11 +4,18 @@ This project showcases the elegance and simplicity of Tailscale, allowing access
 
 ## Architecture
 
-This project creates two instances in the same AWS VPC subnet, the first acts as a Tailscale subnet router, allowing machines on the tailnet to connect with machines inside the AWS subnet not running Tailscale. The second instance runs a small web server on port 80 so that users can verify connectivity, this machine is not connected to the tailnet, and is only accessible on the local LAN or via SNAT from the subnet router for devices on the tailnet.
+This project creates three instances in the same AWS VPC subnet. 
+
+The first acts as a Tailscale subnet router, allowing machines on the tailnet to connect with machines inside the AWS subnet not running Tailscale. 
+
+The second instance runs a small web server on port 80 so that users can verify connectivity, this machine is not connected to the tailnet, and is only accessible on the local LAN or via SNAT from the subnet router for devices on the tailnet.
+
+The third plays the role of a machine theoretically inside a different cloud provider (GCP), to demonstrate the simplification of routing and access across different providers that Tailscale can provide.
+
 ![Tailnet and AWS diagram](https://github.com/user-attachments/assets/8002894f-395b-4b16-b9c2-c6fab339cdc2)
 
 
-# Warning using this demo may overwrite data in your Tailnet, only run in a test environment!
+# Warning using this demo may overwrite data and policies in your Tailnet, only run in a test environment!
 
 ## Prerequisites
 
@@ -47,10 +54,7 @@ Navigate into the directory in your CLI and run:
 
 ## Verification
 
-At the end of the `terraform apply` command running in your CLI it will output the url of the webserver to access to test connectivity, open that url in your browser and you should see Hello World text.
-Example:
-
-<img width="426" height="70" alt="post run instructions" src="https://github.com/user-attachments/assets/486f9509-96f3-43f7-b03b-558d5bb7898c" />
+At the end of the `terraform apply` command running in your CLI it will output tests to verify connectivity (or lack of) in the demo environment.
 
 
 ## How It Works
@@ -60,20 +64,23 @@ The deployment follows a chain of dependencies where each piece of information i
 1. **Infrastructure Discovery**: Terraform starts by querying your AWS environment to find the **Default VPC** and its associated **Subnets**. It selects the **CIDR block** (IP range) of the first available subnet, this subnet is then applied to the machines, and used in firewall and Tailscale rules.
     > I wanted to balance complexity with flexibility here, rather than creating a dedicated VPC, subnet, etc, I am making the assumption that the default will most likely exist while still giving some flexibility to defaults having been changed or recreated.
 2. **Identity & Security Setup**: 
-    * A **Random Pet** name is generated to act as a unique hostname for the router, ensuring no conflicts in your Tailscale admin console.
+    * A **Random Pet** name is generated to act as a unique hostname for the machines, ensuring no conflicts in your Tailscale admin console.
         > I am generating random server names because there can be a delay in removing destroyed registered machines from Tailscale even when they are marked as ephemeral. The name must also be known so that we can find it in tailscale in a later step.
-    * A **Tailscale Auth Key** is generated on-the-fly, which acts as a temporary one-time password for the new machine to join your network.
-        > I created the auth key programmatically to save additional manual steps and requirements, it also allows the terraform to not run into expired keys since they have a maximum life of 90 days. 
-    * An **AWS Security Group** is created that only allows incoming traffic on port 80 if that traffic originates from within the local AWS subnet CIDR discovered in step 1.
+    * Some **Tailscale Auth Keys** are generated on-the-fly, which acts as a temporary one-time password for the new machine to join your network.
+        > I create the auth key programmatically to save additional manual steps and requirements, it also allows the terraform to not run into expired keys since they have a maximum life of 90 days. 
+    * An **AWS Security Group** is created that only allows incoming traffic on port 80 if that traffic originates from within the local AWS subnet CIDR discovered in step 1 for the subnet routing traffic.
 3. **Cloud-Init Synthesis**: The `tailscale_cloud_init` module takes the **Auth Key** to attach to the tailnet, the **Random Hostname** to set the machine hostname so it is known to find the device in Tailscale later, and the **AWS Subnet CIDR** to advertise that subnet and bundles them into a specialized boot script to install and join the tailnet. It also enabled Tailscale SSH for secure remote access.
     > This Tailscale module is a no-brainer, it makes creating the cloud-init scripts incredibly clean and straight forward.
 4. **Instance Provisioning**: 
     * The **Subnet Router** instance is launched using that boot script. Upon power-up, it installs Tailscale, authenticates, and begins "advertising" that it can handle traffic for the AWS Subnet.
     * The **Web Server** instance is launched simultaneously. It runs a shell script to install Apache and hosts the "Hello World" page.
+    * The **GCP Database** instance is launched using that boot script. Upon power-up, it installs Tailscale and authenticates.
 5. **Dynamic Route Approval**: Once the router is live, Terraform uses a **Data Source** to wait (up to 2 minutes) for the device to appear in your Tailscale account. As soon as it finds the matching `device_id`, it triggers a **Route Approval** resource, which automatically "clicks the button" in Tailscale to allow traffic to flow into the AWS subnet.
     > This section was perhaps the hardest for me to come up with an appropriate approach. I explored many options including tagging, ACL, etc (none of which seemed elegant from my current understanding) before finding that this option was available which worked perfectly. I added the wait because it takes some time for Tailscale to be installed after boot and connect and register itself so that the lookup can return a match.
-6. **Hand-off**: Finally, Terraform captures the **Private IP** of the web server and formats it into a URL in your terminal, providing the direct path for you to test the connection.
-    > I wanted to provide a simple step for users to take to test connectivity, and the output was able to be formatted in such a way that the hyperlink is clickable in many instances.
+6. **Tailnet Policy File**: The Tailnet policy file is overwritten so that custom access rules, tag rules, etc can be applied. Generally the policy allows the users machine to connect to "AWS" resources, but the user cannot connect to "GCP" resources, only "AWS" resources. 
+    > This is perhaps the most important step in the whole process, as it is what really shows off the power of Tailscale for not just connectivity but Security in enterprise networks.
+7. **Hand-off**: Finally, Terraform captures the **Private IP** of the web server and the **Tailnet IP** of several machines. This information then produces step by step instructions including correct addresses etc.
+    > I wanted to provide a simple step for users to take to test connectivity, and the output was able to be formatted in such a way that the hyperlink is clickable in many instances etc.
 
 ## Configuration Reference
 

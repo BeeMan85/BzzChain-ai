@@ -80,7 +80,7 @@ resource "tailscale_tailnet_key" "tailnet_key_gcp" {
 }
 
 ####################################################################
-# ----------------------Tailscale ACL Policy-----------------------#
+# ----------------------Tailscale Policy-----------------------#
 ####################################################################
 #you cannot just run this acl because you will get the error ! You seem to be trying to overwrite a non-default policy file with a tailscale_acl resource.
 #Before doing this, please import your existing policy file into Terraform state using:
