@@ -20,7 +20,8 @@ The second instance runs a small web server on port 80 so that users can verify 
 
 The third plays the role of a machine theoretically inside a different cloud provider (GCP), to demonstrate the simplification of routing and access across different providers that Tailscale can provide.
 
-![Tailnet and AWS diagram](https://github.com/user-attachments/assets/8002894f-395b-4b16-b9c2-c6fab339cdc2)
+<img width="1178" height="677" alt="Tailscale Demo Diagram" src="https://github.com/user-attachments/assets/884e8c4c-8123-4a46-883a-4ccc853f0b2a" />
+
 
 
 # Warning using this demo may overwrite data and policies in your Tailnet, only run in a test environment!
