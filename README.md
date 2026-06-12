@@ -1,6 +1,14 @@
-# [BzzChain.ai - POC of Tailscale subnet routing via Terraform]
+# [BzzChain.ai - POC of Tailscale subnet routing and access via Terraform]
 
 This project showcases the elegance and simplicity of Tailscale, allowing access to remote resources (in this case running in AWS) without cumbersome site-to-site VPNs, or insecure firewall rules. It allows you to see how Tailscale securely allows access to devices and services even if they are not able to be joined to the tailnet.
+
+## Why This Use Case?
+I chose a multi-cloud (AWS/GCP) deployment because it perfectly demonstrates Tailscale's immediate value at the enterprise level:
+
+* **Eliminates VPN Friction:** Replaces complex site-to-site IPsec tunnels with seamless, cross-cloud routing, with "local LAN" simplicity..
+* **Identity-Driven Security:** Enforces granular, zero-trust ACLs using dynamic node tags and user credentials instead of brittle IP firewall rules. Moving access rights from the license plate (an IP address) to the drivers license (user identity).
+* **Protects Agentless Resources:** Uses a Subnet Router to securely expose internal services without requiring local agents, public IP exposure, or bastion hosts. Enterprise networking can be messy, you may not be able to install an agent on a printer or network camera, but those need to be protected all the same.
+* **Built for Scale:** Driving the deployment entirely through Terraform (IaC) proves the architecture is automated, repeatable, and ready for commercial scale. When deploying at enterprise scale, automation, testing, rollbacks, etc are all non-negotiables. 
 
 ## Architecture
 
@@ -67,7 +75,7 @@ The deployment follows a chain of dependencies where each piece of information i
     * A **Random Pet** name is generated to act as a unique hostname for the machines, ensuring no conflicts in your Tailscale admin console.
         > I am generating random server names because there can be a delay in removing destroyed registered machines from Tailscale even when they are marked as ephemeral. The name must also be known so that we can find it in tailscale in a later step.
     * Some **Tailscale Auth Keys** are generated on-the-fly, which acts as a temporary one-time password for the new machine to join your network.
-        > I create the auth key programmatically to save additional manual steps and requirements, it also allows the terraform to not run into expired keys since they have a maximum life of 90 days. 
+        > I create the auth key programmatically to save additional manual steps and requirements, it also allows the terraform to not run into expired keys since they have a maximum life of 90 days. These keys also have **tags** attached to them, which are then used extensively for access control etc.
     * An **AWS Security Group** is created that only allows incoming traffic on port 80 if that traffic originates from within the local AWS subnet CIDR discovered in step 1 for the subnet routing traffic.
 3. **Cloud-Init Synthesis**: The `tailscale_cloud_init` module takes the **Auth Key** to attach to the tailnet, the **Random Hostname** to set the machine hostname so it is known to find the device in Tailscale later, and the **AWS Subnet CIDR** to advertise that subnet and bundles them into a specialized boot script to install and join the tailnet. It also enabled Tailscale SSH for secure remote access.
     > This Tailscale module is a no-brainer, it makes creating the cloud-init scripts incredibly clean and straight forward.
