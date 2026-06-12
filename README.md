@@ -20,6 +20,8 @@ The second instance runs a small web server on port 80 so that users can verify 
 
 The third plays the role of a machine theoretically inside a different cloud provider (GCP), to demonstrate the simplification of routing and access across different providers that Tailscale can provide.
 
+Lastly of course is the users local machine running tailscale, this machine is used to test connectivity and explore how the tailnet is configured and secured.
+
 ![Tailnet and AWS diagram](https://github.com/user-attachments/assets/8002894f-395b-4b16-b9c2-c6fab339cdc2)
 
 
